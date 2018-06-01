@@ -25,6 +25,7 @@ func main() {
 		通过计算key的“一致性哈希值”与节点的哈希值比较来选取集群中的某个节点
 	*/
 	peers := groupcache.NewHTTPPool("http://" + local_addr)
+	// 将各个机器的ip地址设置到一致性哈希列表中，在这里哈希map是用来找机器的
 	peers.Set(peers_addrs...)
 	// 创建一个group（一个group是一个存储模块，类似命名空间，可以创建多个）
 	// NewGroup参数分别是group名字、group大小byte、getter函数

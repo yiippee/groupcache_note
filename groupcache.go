@@ -361,7 +361,7 @@ func (g *Group) populateCache(key string, value ByteView, cache *cache) {
 	cache.add(key, value)
 
 	// Evict 去除的意思 items from cache(s) if necessary.
-	// 如果缓存大于某个值，需要去除最久未使用的缓存值
+	// 如果缓存大于某个值，需要去除最久未使用的缓存值。控制缓存的容量
 	for {
 		mainBytes := g.mainCache.bytes()
 		hotBytes := g.hotCache.bytes()

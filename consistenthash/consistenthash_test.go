@@ -41,7 +41,7 @@ func TestHashing(t *testing.T) {
 		hashMap为：6 -> "6", 16 -> "6", 26 -> "6"
 	              4 -> "4", 14 -> "4", 24 -> "4"
 	              2 -> "2", 12 -> "2", 22 -> "2"
-	              因为replicas为3，说明一个节点对应三个虚拟节点，所以需要三个哈希值来对应一个key。多个哈希值对应一个key
+	              因为replicas为3，说明一个节点对应三个虚拟节点，所以需要三个哈希值来对应一个key，三倍关系。多个哈希值对应一个key
 	              没有命中的哈希值，通过顺时针找到最接近该值的哈希值，然后获得key
 	*/
 	hash.Add("6", "4", "2")
@@ -74,6 +74,7 @@ func TestHashing(t *testing.T) {
 }
 
 func TestMyTest(t *testing.T) {
+	// 在groupcache中，哈希是用来查找机器的
 	h1 := New(1, nil)
 	h2 := New(1, nil)
 
