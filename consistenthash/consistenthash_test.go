@@ -36,6 +36,14 @@ func TestHashing(t *testing.T) {
 
 	// Given the above hash function, this will give replicas with "hashes":
 	// 2, 4, 6, 12, 14, 16, 22, 24, 26
+	/*
+		生成的哈希值为(排序了的)： 2, 4, 6, 12, 14, 16, 22, 24, 26    = 3 * 3 = 9个
+		hashMap为：6 -> "6", 16 -> "6", 26 -> "6"
+	              4 -> "4", 14 -> "4", 24 -> "4"
+	              2 -> "2", 12 -> "2", 22 -> "2"
+	              因为replicas为3，说明一个节点对应三个虚拟节点，所以需要三个哈希值来对应一个key。多个哈希值对应一个key
+	              没有命中的哈希值，通过顺时针找到最接近该值的哈希值，然后获得key
+	*/
 	hash.Add("6", "4", "2")
 
 	testCases := map[string]string{
@@ -65,6 +73,21 @@ func TestHashing(t *testing.T) {
 
 }
 
+func TestMyTest(t *testing.T) {
+	h1 := New(1, nil)
+	h2 := New(1, nil)
+
+	h1.Add("li", "zhan", "bin")
+	h2.Add("li", "zhan", "bin")
+
+	r1 := h1.Get("123")
+	r2 := h2.Get("123")
+
+	if r1 == r2 {
+		fmt.Println("the same.")
+	}
+}
+
 func TestConsistency(t *testing.T) {
 	hash1 := New(1, nil)
 	hash2 := New(1, nil)
@@ -76,12 +99,17 @@ func TestConsistency(t *testing.T) {
 		t.Errorf("Fetching 'Ben' from both hashes should be the same")
 	}
 
-	hash2.Add("Becky", "Ben", "Bobby")
+	//hash2.Add("Becky", "Ben", "Bobby")
 
 	if hash1.Get("Ben") != hash2.Get("Ben") ||
 		hash1.Get("Bob") != hash2.Get("Bob") ||
 		hash1.Get("Bonny") != hash2.Get("Bonny") {
 		t.Errorf("Direct matches should always return the same entry")
+	}
+	r1 := hash1.Get("Ben")
+	r2 := hash2.Get("Ben")
+	if r1 == r2 {
+		fmt.Println("...")
 	}
 
 }

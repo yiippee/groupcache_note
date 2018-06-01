@@ -229,7 +229,7 @@ func (g *Group) Get(ctx Context, key string, dest Sink) error {
 	// case will likely be one caller.
 	destPopulated := false
 	// 如果本地缓存和其他节点在本地的热点数据缓存都没有，则需要从其他节点获取数据。因为数据可能在其他节点的缓存中
-	value, destPopulated, err := g.load(ctx, key, dest) //从对等节点或自定义查找逻辑（getter）中获取数据
+	value, destPopulated, err := g.load(ctx, key, dest) //从对等节点或自定义查找逻辑（getter）中获取数据。缓存是分布式的
 	if err != nil {
 		return err
 	}
@@ -292,7 +292,9 @@ func (g *Group) load(ctx Context, key string, dest Sink) (value ByteView, destPo
 			// worth logging I imagine.
 		}
 		// 为什么不是先从本地取呢？？
-		// 其实前面已经从本地的缓存中尝试过读取，但是均失败，所以需要去其他节点读取缓存。
+		// 其实前面已经从本地的缓存中尝试过读取，但是均失败，所以需要去其他节点读取缓存。因为从其他节点的内存中读取数据，还是比本地访问数据库快的。
+		// 其实想想，一个来自外网的数据请求可能经过了很多个路由器转发才到达这里，那么在内网的服务器之间转发消息其实很快很快了。
+
 		// 如果所有节点中的缓存都没有命中，则需要从数据库中读取了，前面的http请求也是想尝试去读取对等节点的缓存的。
 		value, err = g.getLocally(ctx, key, dest) //从本地获取，调用getter函数获取数据，并存储到maincache
 		if err != nil {
