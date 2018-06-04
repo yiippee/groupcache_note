@@ -279,7 +279,7 @@ func (g *Group) load(ctx Context, key string, dest Sink) (value ByteView, destPo
 		g.Stats.LoadsDeduped.Add(1)
 		var value ByteView
 		var err error
-		if peer, ok := g.peers.PickPeer(key); ok {
+		if peer, ok := g.peers.PickPeer(key); ok { // 如果根据一致性hash算出来的key在本地也会返回false，则可直接从本地获取
 			value, err = g.getFromPeer(ctx, peer, key) //构造protobuf数据，向其他节点发起http请求，查找数据，并存储到hotcache
 			if err == nil {
 				g.Stats.PeerLoads.Add(1)
