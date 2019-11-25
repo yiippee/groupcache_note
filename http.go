@@ -124,7 +124,7 @@ func (p *HTTPPool) Set(peers ...string) {
 	p.peers.Add(peers...)
 	p.httpGetters = make(map[string]*httpGetter, len(peers))
 	for _, peer := range peers {
-		p.httpGetters[peer] = &httpGetter{transport: p.Transport, baseURL: peer + p.opts.BasePath}
+		p.httpGetters[peer] = &httpGetter{transport: p.Transport, baseURL: peer + p.opts.BasePath, baseHost: peer}
 	}
 }
 
@@ -188,10 +188,15 @@ func (p *HTTPPool) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 type httpGetter struct {
 	transport func(Context) http.RoundTripper
 	baseURL   string
+	baseHost  string
 }
 
 var bufferPool = sync.Pool{
 	New: func() interface{} { return new(bytes.Buffer) },
+}
+
+func (h *httpGetter) GetBaseHost() string {
+	return h.baseHost
 }
 
 //向其他节点发起http请求，获取缓存数据

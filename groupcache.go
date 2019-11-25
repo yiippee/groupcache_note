@@ -188,6 +188,7 @@ type flightGroup interface {
 // Stats are per-group statistics.
 // 所有统计信息都是原子形式操作
 type Stats struct {
+	Sets           AtomicInt
 	Gets           AtomicInt // any Get request, including from peers
 	CacheHits      AtomicInt // either cache was good
 	PeerLoads      AtomicInt // either remote load or remote cache hit (not an error)
@@ -210,6 +211,35 @@ func (g *Group) initPeers() {
 	}
 }
 
+func (g *Group) GetPeers() PeerPicker {
+	g.peersOnce.Do(g.initPeers) // 把httppool赋值给 groupcache.PeerPicker
+	return g.peers
+}
+
+// 上传图片到目标服务器
+//func (g *Group) Set(ctx Context, key string, dest Sink) error {
+//	g.peersOnce.Do(g.initPeers) // 把httppool赋值给 groupcache.PeerPicker
+//	g.Stats.Sets.Add(1)         // 统计信息
+//	if dest == nil {
+//		return errors.New("groupcache: nil dest Sink")
+//	}
+//
+//	//if peer, ok := g.peers.PickPeer(key); ok { // 如果根据一致性hash算出来的key在本地，就会返回false，则可直接从本地获取
+//	//	// key在其他服务器
+//	//	value, err := g.getFromPeer(ctx, peer, key) // 构造protobuf数据，向其他节点发起http请求，查找数据，并存储到hotcache
+//	//	if err == nil {
+//	//		return nil
+//	//	}
+//	//	g.Stats.PeerErrors.Add(1)
+//	//	// TODO(bradfitz): log the peer's error? keep
+//	//	// log of the past few for /groupcachez?  It's
+//	//	// probably boring (normal task movement), so not
+//	//	// worth logging I imagine.
+//	//}
+//
+//	// 在本地，则直接存储
+//
+//}
 //group查找
 func (g *Group) Get(ctx Context, key string, dest Sink) error {
 	g.peersOnce.Do(g.initPeers) // 把httppool赋值给 groupcache.PeerPicker

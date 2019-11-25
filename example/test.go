@@ -1,12 +1,18 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"groupcacheNote"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
+	"path"
+	"strings"
 )
 
 var (
@@ -60,5 +66,84 @@ func main() {
 		}
 		rw.Write([]byte(data))
 	})
+
+	// 上次图片
+	http.HandleFunc("/upload", func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+
+		req.ParseForm()
+		if req.Method != "POST" {
+			w.Write([]byte(html))
+		} else {
+
+			pic := "test.png"
+			// 检查图片后缀
+			ext := strings.ToLower(path.Ext(pic))
+			if ext != ".jpg" && ext != ".png" {
+				errorHandle(errors.New("只支持jpg/png图片上传"), w)
+				return
+				//defer os.Exit(2)
+			}
+			// 一致性hash算法计算图片所在的服务器地址
+			key := pic
+			if peer, ok := image_cache.GetPeers().PickPeer(key); ok { // 如果根据一致性hash算出来的key在本地，就会返回false，则可直接从本地获取
+				// key在其他服务器
+				remote, err := url.Parse(peer.GetBaseHost())
+				if err != nil {
+					panic(err)
+				}
+
+				// NewSingleHostReverseProxy 需要池化吗？ 感觉不需要，NewSingleHostReverseProxy也没做多少事
+				// 虽然每一次都需要重新创建。但是又感觉可以池化啊
+				proxy := httputil.NewSingleHostReverseProxy(remote) // 这个也可以代理websocket？？？感觉是可以upgrade的
+				//如果代理出错，则转向其他后端服务，并检查这个出错服务是否正常，如果不正常则踢出iplist
+				//proxy.ErrorHandler = func(writer http.ResponseWriter, request *http.Request, e error) {
+				//	robin.Del(addr)
+				//}
+				proxy.ServeHTTP(w, req)
+				//value, err := g.getFromPeer(ctx, peer, key) // 构造protobuf数据，向其他节点发起http请求，查找数据，并存储到hotcache
+				//if err == nil {
+				//	return nil
+				//}
+			} else {
+				// 保存图片
+				// 接收图片
+				uploadFile, handle, err := req.FormFile("image")
+				errorHandle(err, w)
+
+				path := "E:\\lzb\\golang\\src\\groupcacheNote\\example\\upload\\"
+				os.Mkdir(path, 0777)
+				saveFile, err := os.OpenFile(path+handle.Filename, os.O_WRONLY|os.O_CREATE, 0666)
+				errorHandle(err, w)
+				io.Copy(saveFile, uploadFile)
+
+				defer uploadFile.Close()
+				defer saveFile.Close()
+				fmt.Println("save pic successful...")
+				// 上传图片成功
+				w.Write([]byte("see the pic: <a target='_blank' href='/uploaded/" + handle.Filename + "'>" + handle.Filename + "</a>"))
+			}
+		}
+	})
 	log.Fatal(http.ListenAndServe(local_addr, nil))
 }
+
+// 上传图像接口
+
+// 统一错误输出接口
+func errorHandle(err error, w http.ResponseWriter) {
+	if err != nil {
+		w.Write([]byte(err.Error()))
+	}
+}
+
+const html = `<html>
+    <head></head>
+    <body>
+        <form method="post" enctype="multipart/form-data">
+            <input type="file" name="image" />
+            <input type="submit" />
+        </form>
+    </body>
+
+</html>`
