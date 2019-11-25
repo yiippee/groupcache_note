@@ -31,9 +31,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	pb "github.com/golang/groupcache/groupcachepb"
-	"github.com/golang/groupcache/lru"
-	"github.com/golang/groupcache/singleflight"
+	pb "groupcacheNote/groupcachepb"
+	"groupcacheNote/lru"
+	"groupcacheNote/singleflight"
 )
 
 // A Getter loads data for a key.
@@ -150,7 +150,7 @@ type Group struct {
 	// (amongst its peers) is authoritative. That is, this cache
 	// contains keys which consistent hash on to this process's
 	// peer number.
-	mainCache cache //使用lru策略实现的缓存结构，也是key hash值在本地的缓存
+	mainCache cache // 使用lru策略实现的缓存结构，也是key hash值在本地的缓存
 
 	// hotCache contains keys/values for which this peer is not
 	// authoritative (otherwise they would be in mainCache), but
@@ -186,6 +186,7 @@ type flightGroup interface {
 }
 
 // Stats are per-group statistics.
+// 所有统计信息都是原子形式操作
 type Stats struct {
 	Gets           AtomicInt // any Get request, including from peers
 	CacheHits      AtomicInt // either cache was good
@@ -211,12 +212,12 @@ func (g *Group) initPeers() {
 
 //group查找
 func (g *Group) Get(ctx Context, key string, dest Sink) error {
-	g.peersOnce.Do(g.initPeers) //把httppool赋值给 groupcache.PeerPicker
-	g.Stats.Gets.Add(1)         //统计信息
+	g.peersOnce.Do(g.initPeers) // 把httppool赋值给 groupcache.PeerPicker
+	g.Stats.Gets.Add(1)         // 统计信息
 	if dest == nil {
 		return errors.New("groupcache: nil dest Sink")
 	}
-	value, cacheHit := g.lookupCache(key) //从maincache、hotcache查找
+	value, cacheHit := g.lookupCache(key) // 从maincache（本机缓存）、hotcache（其他机器数据在本机的缓存）查找
 
 	if cacheHit {
 		g.Stats.CacheHits.Add(1)
@@ -229,7 +230,8 @@ func (g *Group) Get(ctx Context, key string, dest Sink) error {
 	// case will likely be one caller.
 	destPopulated := false
 	// 如果本地缓存和其他节点在本地的热点数据缓存都没有，则需要从其他节点获取数据。因为数据可能在其他节点的缓存中
-	value, destPopulated, err := g.load(ctx, key, dest) //从对等节点或自定义查找逻辑（getter）中获取数据。缓存是分布式的
+	// 应该是从后端获取数据了，不一定是其他机器，需要根据key计算一致性hash来定位具体的服务器
+	value, destPopulated, err := g.load(ctx, key, dest) // 从对等节点或自定义查找逻辑（getter）中获取数据。缓存是分布式的
 	if err != nil {
 		return err
 	}
@@ -240,13 +242,13 @@ func (g *Group) Get(ctx Context, key string, dest Sink) error {
 }
 
 // load loads key either by invoking the getter locally or by sending it to another machine.
-//从对等节点或自定义查找逻辑（getter）中获取数据
+// 从对等节点或自定义查找逻辑（getter）中获取数据
 func (g *Group) load(ctx Context, key string, dest Sink) (value ByteView, destPopulated bool, err error) {
 	g.Stats.Loads.Add(1)
 	// 用于向其他节点发送查询请求时，合并相同key的请求，减少热点可能带来的麻烦,
 	// 比如说我请求key="123"的数据，在没有返回的时候又有很多相同key的请求，
 	// 而此时后面的没有必要发，只要等待第一次返回的结果即可.
-	// 此函数使用flightGroup执行策略，保证只有一个goroutine 调用getter函数取数据
+	// 此函数使用 flightGroup 执行策略，保证只有一个goroutine 调用getter函数取数据。   重复抑制
 	viewi, err := g.loadGroup.Do(key, func() (interface{}, error) {
 		// Check the cache again because singleflight can only dedup calls
 		// that overlap concurrently.  It's possible for 2 concurrent
@@ -280,7 +282,8 @@ func (g *Group) load(ctx Context, key string, dest Sink) (value ByteView, destPo
 		var value ByteView
 		var err error
 		if peer, ok := g.peers.PickPeer(key); ok { // 如果根据一致性hash算出来的key在本地也会返回false，则可直接从本地获取
-			value, err = g.getFromPeer(ctx, peer, key) //构造protobuf数据，向其他节点发起http请求，查找数据，并存储到hotcache
+			// key存储在其他服务器
+			value, err = g.getFromPeer(ctx, peer, key) // 构造protobuf数据，向其他节点发起http请求，查找数据，并存储到hotcache
 			if err == nil {
 				g.Stats.PeerLoads.Add(1)
 				return value, nil
@@ -291,18 +294,21 @@ func (g *Group) load(ctx Context, key string, dest Sink) (value ByteView, destPo
 			// probably boring (normal task movement), so not
 			// worth logging I imagine.
 		}
+		// 2019-11-25 新的注释以下逻辑是从本地数据库获取数据。这块逻辑只会在key通过一致性hash得出的服务器上执行，其他机器不会执行。这也是用户定义缓存不命中后的处理
+
 		// 为什么不是先从本地取呢？？
 		// 其实前面已经从本地的缓存中尝试过读取，但是均失败，所以需要去其他节点读取缓存。因为从其他节点的内存中读取数据，还是比本地访问数据库快的。
 		// 其实想想，一个来自外网的数据请求可能经过了很多个路由器转发才到达这里，那么在内网的服务器之间转发消息其实很快很快了。
 
 		// 如果所有节点中的缓存都没有命中，则需要从数据库中读取了，前面的http请求也是想尝试去读取对等节点的缓存的。
-		value, err = g.getLocally(ctx, key, dest) //从本地获取，调用getter函数获取数据，并存储到maincache
+		value, err = g.getLocally(ctx, key, dest) // 从本地获取，调用getter函数获取数据，并存储到maincache。
+		// 也不是说从本地获取，而是缓存没命中时，如何处理的问题，只是访问到这台机器，则这台机器去访问全局的DB加载数据。在这里缓存才是分布式的。
 		if err != nil {
 			g.Stats.LocalLoadErrs.Add(1)
 			return nil, err
 		}
 		g.Stats.LocalLoads.Add(1)
-		destPopulated = true // only one caller of load gets this return value
+		destPopulated = true                      // only one caller of load gets this return value
 		g.populateCache(key, value, &g.mainCache) // 将读取到的value存入本地的mainCache中
 		return value, nil
 	})
@@ -341,7 +347,7 @@ func (g *Group) getFromPeer(ctx Context, peer ProtoGetter, key string) (ByteView
 	return value, nil
 }
 
-//从maincache、hotcache查找，cache底层使用链表实现并使用lru策略修改链表
+// 从maincache、hotcache查找，cache底层使用链表实现并使用lru策略修改链表
 func (g *Group) lookupCache(key string) (value ByteView, ok bool) {
 	if g.cacheBytes <= 0 {
 		return
@@ -354,6 +360,7 @@ func (g *Group) lookupCache(key string) (value ByteView, ok bool) {
 	return
 }
 
+// 将缓存数据存储在本地的hotcache中，这就会导致热数据会遍布在所有的机器中
 func (g *Group) populateCache(key string, value ByteView, cache *cache) {
 	if g.cacheBytes <= 0 {
 		return

@@ -25,9 +25,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/golang/groupcache/consistenthash"
-	pb "github.com/golang/groupcache/groupcachepb"
 	"github.com/golang/protobuf/proto"
+	"groupcacheNote/consistenthash"
+	pb "groupcacheNote/groupcachepb"
 )
 
 const defaultBasePath = "/_groupcache/"
@@ -47,14 +47,14 @@ type HTTPPool struct {
 	Transport func(Context) http.RoundTripper
 
 	// this peer's base URL, e.g. "https://example.net:8000"
-	self string //本地节点url
+	self string // 本地节点url
 
 	// opts specifies the options.
 	opts HTTPPoolOptions
 
 	mu sync.Mutex // guards peers and httpGetters
 	// 包含 一致性hash map、hash函数的结构体，保存集群节点（都是用url代表，同下）和其对应一致性hash值
-	peers       *consistenthash.Map
+	peers *consistenthash.Map
 	// 保存节点url和其对应的http数据请求器
 	httpGetters map[string]*httpGetter // keyed by e.g. "http://10.0.0.2:8008"
 }
@@ -63,15 +63,15 @@ type HTTPPool struct {
 type HTTPPoolOptions struct {
 	// BasePath specifies the HTTP path that will serve groupcache requests.
 	// If blank, it defaults to "/_groupcache/".
-	BasePath string //peers间url请求路径  /_groupcache/
+	BasePath string // peers间url请求路径  /_groupcache/
 
 	// Replicas specifies the number of key replicas on the consistent hash.
 	// If blank, it defaults to 50.
-	Replicas int //单一节点在一致性hash map中的虚拟节点数 默认为 50 个
+	Replicas int // 单一节点在一致性hash map中的虚拟节点数 默认为 50 个
 
 	// HashFn specifies the hash function of the consistent hash.
 	// If blank, it defaults to crc32.ChecksumIEEE.
-	HashFn consistenthash.Hash //一致性hash函数 默认是 crc32.ChecksumIEEE.
+	HashFn consistenthash.Hash // 一致性hash计算函数 默认是 crc32.ChecksumIEEE.
 }
 
 // NewHTTPPool initializes an HTTP pool of peers, and registers itself as a PeerPicker.
@@ -135,8 +135,9 @@ func (p *HTTPPool) PickPeer(key string) (ProtoGetter, bool) {
 	if p.peers.IsEmpty() {
 		return nil, false
 	}
-	if peer := p.peers.Get(key); peer != p.self { //判断获取到的节点是不是本地节点
-		return p.httpGetters[peer], true //返回节点对应的httpGetter
+	// 在这里一致性hash是用于查找服务器url的，根据key来定位具体的服务器
+	if peer := p.peers.Get(key); peer != p.self { // 判断获取到的节点是不是本地节点
+		return p.httpGetters[peer], true // 返回节点对应的httpGetter
 	}
 	return nil, false
 }
@@ -155,7 +156,7 @@ func (p *HTTPPool) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	key := parts[1]
 
 	// Fetch the value for this group/key.
-	group := GetGroup(groupName) //获取group名字，因为可以有多个group
+	group := GetGroup(groupName) // 获取group名字，因为可以有多个group
 	if group == nil {
 		http.Error(w, "no such group: "+groupName, http.StatusNotFound)
 		return
@@ -165,9 +166,9 @@ func (p *HTTPPool) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		ctx = p.Context(r)
 	}
 
-	group.Stats.ServerRequests.Add(1) //设置统计数据
+	group.Stats.ServerRequests.Add(1) // 设置统计数据
 	var value []byte
-	err := group.Get(ctx, key, AllocatingByteSliceSink(&value)) //此处和groupcache使用处一致
+	err := group.Get(ctx, key, AllocatingByteSliceSink(&value)) // 此处和groupcache使用处一致
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -201,6 +202,7 @@ func (h *httpGetter) Get(context Context, in *pb.GetRequest, out *pb.GetResponse
 		url.QueryEscape(in.GetGroup()),
 		url.QueryEscape(in.GetKey()),
 	)
+	fmt.Println("peer url: ", u)
 	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
 		return err

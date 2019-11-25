@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/golang/groupcache"
+	"groupcacheNote"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -10,18 +10,18 @@ import (
 )
 
 var (
-	peers_addrs = []string{"http://127.0.0.1:8001", "http://127.0.0.1:8002", "http://127.0.0.1:8003"}
+	peers_addrs = []string{"http://127.0.0.1:28001", "http://127.0.0.1:28002", "http://127.0.0.1:28003"}
 )
 
 func main() {
 	if len(os.Args) != 2 {
 		fmt.Println("args: ", os.Args)
-		fmt.Println("\r\n Usage local_addr \t\n local_addr must in(127.0.0.1:8001,localhost:8002,127.0.0.1:8003)\r\n")
+		fmt.Println("\r\n Usage local_addr \t\n local_addr must in(127.0.0.1:18001,localhost:18002,127.0.0.1:18003)\r\n")
 		os.Exit(1)
 	}
-	local_addr := os.Args[1]
+	local_addr := os.Args[1] // 设置本地ip地址
 	/*
-		httppool是一个集群节点选取器，保存所有节点信息，获取对等节点缓存时，
+		httppool 是一个集群节点选取器，保存所有节点信息，获取对等节点缓存时，
 		通过计算key的“一致性哈希值”与节点的哈希值比较来选取集群中的某个节点
 	*/
 	peers := groupcache.NewHTTPPool("http://" + local_addr)
@@ -37,7 +37,7 @@ func main() {
 			// 确切地说是访问数据库的处理。因为groupcache会先访问缓存，缓存是分布式的，包括本地的缓存和其他主机上的缓存，
 			// 在本地缓存和其他主机上的缓存都没有命中时，才会执行这个访问数据库的函数，执行完会将数据写入本地缓存。
 			func(ctx groupcache.Context, key string, dest groupcache.Sink /*sink 类似一个汇聚点，类似网关*/) error {
-				key = "C:/Go/gopath/src/github.com/golang/groupcache/example/" + key
+				key = "E:/lzb/golang/src/groupcacheNote/example/" + key
 				result, err := ioutil.ReadFile(key) // 访问本地数据库或者文件
 				if err != nil {
 					fmt.Printf("read file error %s.\n", err.Error())
@@ -47,6 +47,8 @@ func main() {
 				dest.SetBytes([]byte(result))
 				return nil
 			}))
+
+	// 响应http请求
 	http.HandleFunc("/image", func(rw http.ResponseWriter, r *http.Request) {
 		var data []byte
 		k := r.URL.Query().Get("id")

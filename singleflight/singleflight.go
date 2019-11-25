@@ -35,7 +35,7 @@ type call struct {
 // units of work can be executed with duplicate suppression.
 // Group 可以看做是任务的分类
 type Group struct {
-	mu sync.Mutex  // 用于锁map的     // protects m
+	mu sync.Mutex       // 用于锁map的     // protects m
 	m  map[string]*call // lazily initialized
 }
 
@@ -51,7 +51,7 @@ func (g *Group) Do(key string, fn func() (interface{}, error)) (interface{}, err
 	}
 	if c, ok := g.m[key]; ok { // key存在说明有其他请求，所以等着，其他请求完成后，这个请求可以直接获取结果
 		g.mu.Unlock()
-		c.wg.Wait() // 对于key的多个请求，只有一个请求会触发func()函数,其他就等着
+		c.wg.Wait() // 对于key的多个请求，只有一个请求会触发func()函数,其他就等着。重复抑制
 		return c.val, c.err
 	}
 	c := new(call) // 新建一个call
@@ -62,7 +62,7 @@ func (g *Group) Do(key string, fn func() (interface{}, error)) (interface{}, err
 	c.val, c.err = fn() // 调用实际的函数
 	c.wg.Done()
 
-	g.mu.Lock() // 保护g.m map的读写
+	g.mu.Lock()      // 保护g.m map的读写
 	delete(g.m, key) // 删除key
 	g.mu.Unlock()
 

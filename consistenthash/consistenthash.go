@@ -26,9 +26,9 @@ import (
 type Hash func(data []byte) uint32
 
 type Map struct {
-	hash     Hash //一致性hash函数
-	replicas int  //单一节点在一致性hash map中的虚拟节点数
-	keys     []int // Sorted //所有节点生成的虚拟节点hash值slice,排序了的
+	hash     Hash           //一致性hash函数
+	replicas int            //单一节点在一致性hash map中的虚拟节点数
+	keys     []int          // Sorted //所有节点生成的虚拟节点hash值slice,排序了的
 	hashMap  map[int]string // hash值和节点对应map
 }
 
@@ -67,9 +67,9 @@ func (m *Map) Get(key string) string { //p.peers.Get(key)
 		return ""
 	}
 
-	hash := int(m.hash([]byte(key))) //使用一致性hash函数计算"缓存数据"key的hash值
+	hash := int(m.hash([]byte(key))) // 使用一致性hash函数计算"缓存数据"key的hash值
 
-	// Binary search for appropriate replica. //选取最小的大于 key的hash值 的 节点hash值
+	// Binary search for appropriate replica. // 选取最小的大于 key的hash值 的 节点hash值
 	idx := sort.Search(len(m.keys), func(i int) bool {
 		ok := m.keys[i] >= hash
 		//return m.keys[i] >= hash
@@ -81,5 +81,5 @@ func (m *Map) Get(key string) string { //p.peers.Get(key)
 		idx = 0
 	}
 
-	return m.hashMap[m.keys[idx]] //返回节点（url）
+	return m.hashMap[m.keys[idx]] // 返回节点（url）          在这里一致性hash是用于查找服务器url的，用来定位具体的服务器
 }
