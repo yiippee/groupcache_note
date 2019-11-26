@@ -311,7 +311,7 @@ func (g *Group) load(ctx Context, key string, dest Sink) (value ByteView, destPo
 		g.Stats.LoadsDeduped.Add(1)
 		var value ByteView
 		var err error
-		if peer, ok := g.peers.PickPeer(key); ok { // 如果根据一致性hash算出来的key在本地也会返回false，则可直接从本地获取
+		if peer, ok := g.peers.PickPeer(key); ok { // 如果根据一致性hash算出来的key在本地也会返回false，则可直接从本地加载，而不是去其他服务器了，这样能维持hash一致性
 			// key存储在其他服务器
 			value, err = g.getFromPeer(ctx, peer, key) // 构造protobuf数据，向其他节点发起http请求，查找数据，并存储到hotcache
 			if err == nil {
@@ -326,7 +326,7 @@ func (g *Group) load(ctx Context, key string, dest Sink) (value ByteView, destPo
 		}
 		// 2019-11-25 新的注释以下逻辑是从本地数据库获取数据。这块逻辑只会在key通过一致性hash得出的服务器上执行，其他机器不会执行。这也是用户定义缓存不命中后的处理
 
-		// 为什么不是先从本地取呢？？
+		// 为什么不是先从本地取呢？？ 这里之前理解错了
 		// 其实前面已经从本地的缓存中尝试过读取，但是均失败，所以需要去其他节点读取缓存。因为从其他节点的内存中读取数据，还是比本地访问数据库快的。
 		// 其实想想，一个来自外网的数据请求可能经过了很多个路由器转发才到达这里，那么在内网的服务器之间转发消息其实很快很快了。
 

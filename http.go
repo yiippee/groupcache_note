@@ -168,7 +168,7 @@ func (p *HTTPPool) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	group.Stats.ServerRequests.Add(1) // 设置统计数据
 	var value []byte
-	err := group.Get(ctx, key, AllocatingByteSliceSink(&value)) // 此处和groupcache使用处一致
+	err := group.Get(ctx, key, AllocatingByteSliceSink(&value)) // 此处Get方法和例子中的test.go的image_cache.Get方法是一样的，都是响应外部http请求
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

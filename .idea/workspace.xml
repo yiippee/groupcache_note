@@ -1,18 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="6719492c-1f7e-4264-a92a-aacc1c505fc1" name="Default" comment="2019年11月25号 新的注释和理解">
-      <change afterPath="$PROJECT_DIR$/example/test.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/example/upload/main.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/go.sum" afterDir="false" />
+    <list default="true" id="6719492c-1f7e-4264-a92a-aacc1c505fc1" name="Default" comment="2019年11月25号 增加上传图片功能&#10;1，无法管理个节点&#10;2，无法修改缓存&#10;3，适合静态数据缓存">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/example/peer2/test.exe" beforeDir="false" afterPath="$PROJECT_DIR$/example/peer2/test.exe" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/example/test.exe" beforeDir="false" afterPath="$PROJECT_DIR$/example/test.exe" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/example/test.go" beforeDir="false" afterPath="$PROJECT_DIR$/example/test.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/groupcache.go" beforeDir="false" afterPath="$PROJECT_DIR$/groupcache.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/http.go" beforeDir="false" afterPath="$PROJECT_DIR$/http.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/peers.go" beforeDir="false" afterPath="$PROJECT_DIR$/peers.go" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -177,7 +170,9 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="2019年11月25号 新的注释和理解" />
-    <option name="LAST_COMMIT_MESSAGE" value="2019年11月25号 新的注释和理解" />
+    <MESSAGE value="2019年11月25号 增加上传图片功能" />
+    <MESSAGE value="2019年11月25号 增加上传图片功能&#10;1，无法管理个节点&#10;2，无法修改缓存&#10;3，适合静态数据缓存" />
+    <option name="LAST_COMMIT_MESSAGE" value="2019年11月25号 增加上传图片功能&#10;1，无法管理个节点&#10;2，无法修改缓存&#10;3，适合静态数据缓存" />
   </component>
   <component name="VgoProject">
     <integration-enabled>true</integration-enabled>
@@ -198,7 +193,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/groupcache.go</url>
-          <line>305</line>
+          <line>306</line>
           <option name="timeStamp" value="5" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
@@ -208,7 +203,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/example/upload/main.go</url>
-          <line>55</line>
+          <line>56</line>
           <option name="timeStamp" value="12" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">

@@ -67,7 +67,7 @@ func main() {
 		rw.Write([]byte(data))
 	})
 
-	// 上次图片
+	// 上传图片
 	http.HandleFunc("/upload", func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 
@@ -108,7 +108,7 @@ func main() {
 			} else {
 				// 保存图片
 				// 接收图片
-				uploadFile, handle, err := req.FormFile("image")
+				uploadFile, handle, err := req.FormFile("image") // 读 FormFile 不能再转发前读，因为一读就没了，再转发，就读不到了。但需要知道key，所以直接传参数
 				errorHandle(err, w)
 
 				path := "E:\\lzb\\golang\\src\\groupcacheNote\\example\\upload\\"
